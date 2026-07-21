@@ -1,1 +1,26 @@
+name: iOS Build
 
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: List files
+        run: ls -la
+
+      - name: Build iOS App
+        run: |
+          xcodebuild \
+          -project AuraEnergyRevealed.xcodeproj \
+          -scheme AuraEnergyRevealed \
+          -sdk iphoneos \
+          -configuration Release \
+          build
