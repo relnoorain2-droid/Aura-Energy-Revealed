@@ -70,7 +70,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$HOME/.appstoreconnect/private_keys"
-          case "$PRIVATE_KEY" in *"BEGIN PRIVATE KEY"*) printf '%s\n' "-----BEGIN PRIVATE KEY-----" && printf '%s' "$PRIVATE_KEY" | sed -e 's/-----BEGIN PRIVATE KEY-----//' -e 's/-----END PRIVATE KEY-----//' | tr -d "\r\n \t" | fold -w 64 && printf '%s\n' "-----END PRIVATE KEY-----" ;; *) printf '%s' "$PRIVATE_KEY" | tr -d "\r\n \t" | base64 --decode ;; esac \
+          case "$PRIVATE_KEY" in *"BEGIN PRIVATE KEY"*) printf '%s\n' "$PRIVATE_KEY" ;; *) printf '%s' "$PRIVATE_KEY" | tr -d "\r\n \t" | base64 --decode ;; esac \
             > "$HOME/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8"
           chmod 600 "$HOME/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8"
           # Sanity check without printing key material
