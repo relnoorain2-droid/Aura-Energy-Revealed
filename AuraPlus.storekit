@@ -1,0 +1,111 @@
+{
+  "identifier" : "5F9A2C10-AAAA-4C7B-9C11-AURAPLUS0001",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "AURAPLUSGROUP01",
+      "localizations" : [
+
+      ],
+      "name" : "Aura+",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "39.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "AURAPLUSYEARLY01",
+          "introductoryOffer" : {
+            "internalID" : "AURAPLUSTRIAL01",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P3D"
+          },
+          "localizations" : [
+            {
+              "description" : "Unlimited readings, coach & meditations",
+              "displayName" : "Aura+ Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.auravision.auraplus.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Aura+ Yearly",
+          "subscriptionGroupID" : "AURAPLUSGROUP01",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "19.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "AURAPLUSMONTHLY1",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Unlimited readings, coach & meditations",
+              "displayName" : "Aura+ Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.auravision.auraplus.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Aura+ Monthly",
+          "subscriptionGroupID" : "AURAPLUSGROUP01",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "15.99",
+          "familyShareable" : false,
+          "groupNumber" : 3,
+          "internalID" : "AURAPLUSWEEKLY01",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Unlimited readings, coach & meditations",
+              "displayName" : "Aura+ Weekly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.auravision.auraplus.weekly",
+          "recurringSubscriptionPeriod" : "P1W",
+          "referenceName" : "Aura+ Weekly",
+          "subscriptionGroupID" : "AURAPLUSGROUP01",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}
