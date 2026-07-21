@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Xcode 15+ name for the old "app-store" method -->
+    <key>method</key>
+    <string>app-store-connect</string>
+
+    <!-- Export the .ipa locally; the workflow uploads it in a separate step
+         so the artifact is retained even if upload fails. -->
+    <key>destination</key>
+    <string>export</string>
+
+    <key>teamID</key>
+    <string>QAT93YWVSF</string>
+
+    <key>signingStyle</key>
+    <string>automatic</string>
+
+    <!-- Upload dSYMs so TestFlight crash reports are symbolicated -->
+    <key>uploadSymbols</key>
+    <true/>
+
+    <key>manageAppVersionAndBuildNumber</key>
+    <false/>
+</dict>
+</plist>

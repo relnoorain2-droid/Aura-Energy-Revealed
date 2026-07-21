@@ -1,0 +1,23 @@
+# Xcode
+build/
+DerivedData/
+*.xcarchive
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Xcode per-user state (this is why the shared scheme must be committed)
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+
+# macOS
+.DS_Store
+
+# Signing material — never commit these
+*.p8
+*.p12
+*.cer
+*.certSigningRequest
+*.mobileprovision

@@ -1,0 +1,175 @@
+name: TestFlight Release
+
+# Archives a signed iOS app and uploads it to App Store Connect / TestFlight.
+#
+# Signing uses an App Store Connect API key — no certificates or provisioning
+# profiles live in this repo. xcodebuild -allowProvisioningUpdates creates and
+# renews the distribution certificate and provisioning profile using that key.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   APP_STORE_CONNECT_KEY_ID       the Key ID from App Store Connect
+#   APP_STORE_CONNECT_ISSUER_ID    the Issuer ID shown above the key table
+#   APP_STORE_CONNECT_PRIVATE_KEY  base64 of the AuthKey_XXXXXX.p8 file
+#   APPLE_TEAM_ID                  QAT93YWVSF
+#
+# Trigger manually from the Actions tab, or by pushing a tag like v1.0.0.
+
+on:
+  workflow_dispatch:
+    inputs:
+      whats_new:
+        description: "What to Test notes for this TestFlight build"
+        required: false
+        default: "Internal build."
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: testflight
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Archive & upload to TestFlight
+    runs-on: macos-15
+    timeout-minutes: 60
+
+    env:
+      SCHEME: AuraEnergyRevealed
+      PROJECT: AuraEnergyRevealed.xcodeproj
+      ARCHIVE_PATH: build/AuraEnergyRevealed.xcarchive
+      EXPORT_DIR: build/export
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify required secrets are present
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          missing=0
+          for v in KEY_ID ISSUER_ID PRIVATE_KEY TEAM_ID; do
+            if [ -z "${!v}" ]; then echo "::error::Missing secret: $v"; missing=1; fi
+          done
+          [ "$missing" -eq 0 ] || exit 1
+          echo "All required secrets are set."
+
+      - name: Show toolchain
+        run: xcodebuild -version
+
+      # The .p8 is written to a temp dir, never echoed, and removed in cleanup.
+      - name: Install App Store Connect API key
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          echo -n "$PRIVATE_KEY" | base64 --decode \
+            > "$HOME/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8"
+          chmod 600 "$HOME/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8"
+          # Sanity check without printing key material
+          if ! head -n 1 "$HOME/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8" | grep -q "BEGIN PRIVATE KEY"; then
+            echo "::error::Decoded key is not a valid .p8 — check APP_STORE_CONNECT_PRIVATE_KEY is base64 of the .p8 file"
+            exit 1
+          fi
+          echo "API key installed."
+
+      # TestFlight requires a unique, increasing build number per upload.
+      - name: Compute build number
+        id: version
+        run: |
+          BUILD_NUMBER=$(( ${{ github.run_number }} + 100 ))
+          echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "Using build number $BUILD_NUMBER"
+
+      - name: Archive (Release, signed)
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          xcodebuild archive \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$ARCHIVE_PATH" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8" \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION=${{ steps.version.outputs.build_number }}
+
+      - name: Export signed .ipa
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$EXPORT_DIR" \
+            -exportOptionsPlist ExportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8" \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID"
+          ls -la "$EXPORT_DIR"
+
+      # Keep the build even if the upload step fails.
+      - name: Upload .ipa as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AuraEnergyRevealed-ipa-${{ steps.version.outputs.build_number }}
+          path: |
+            ${{ env.EXPORT_DIR }}/*.ipa
+            ${{ env.ARCHIVE_PATH }}/dSYMs
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Validate app before upload
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          IPA=$(find "$EXPORT_DIR" -name "*.ipa" | head -n 1)
+          echo "Validating $IPA"
+          xcrun altool --validate-app -f "$IPA" -t ios \
+            --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID"
+
+      - name: Upload to App Store Connect (TestFlight)
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          IPA=$(find "$EXPORT_DIR" -name "*.ipa" | head -n 1)
+          echo "Uploading $IPA"
+          xcrun altool --upload-app -f "$IPA" -t ios \
+            --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID"
+          echo "Uploaded. Processing in App Store Connect usually takes 5-15 minutes."
+
+      - name: Remove API key from runner
+        if: always()
+        run: rm -rf "$HOME/.appstoreconnect/private_keys"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### TestFlight build ${{ steps.version.outputs.build_number }}"
+            echo ""
+            echo "- Scheme: \`AuraEnergyRevealed\`"
+            echo "- Bundle ID: \`com.auravision.auraenergyrevealed\`"
+            echo "- App Store Connect ID: 6793072852"
+          } >> "$GITHUB_STEP_SUMMARY"
