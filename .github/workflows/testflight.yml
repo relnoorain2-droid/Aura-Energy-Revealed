@@ -70,7 +70,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$HOME/.appstoreconnect/private_keys"
-          echo -n "$PRIVATE_KEY" | base64 --decode \
+          echo -n "$PRIVATE_KEY" | grep -v -- "-----" | tr -d "\r\n \t" | base64 --decode \
             > "$HOME/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8"
           chmod 600 "$HOME/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8"
           # Sanity check without printing key material
