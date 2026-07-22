@@ -160,16 +160,17 @@ struct RisingParticles: View {
     }
 
     private let particles: [Particle] = {
-        let colors = [AuraPalette.electricBlue, AuraPalette.lavender, AuraPalette.emerald, AuraPalette.gold, AuraPalette.rose]
-        return (0..<22).map { i in
-            Particle(
-                x: Double((i * 37) % 100) / 100.0,
-                speed: 0.12 + Double((i * 13) % 10) / 60.0,
-                size: 3 + Double(i % 4),
-                color: colors[i % colors.count],
-                phaseOffset: Double((i * 29) % 100) / 100.0
-            )
+        let colors: [Color] = [AuraPalette.electricBlue, AuraPalette.lavender, AuraPalette.emerald, AuraPalette.gold, AuraPalette.rose]
+        var result: [Particle] = []
+        for i in 0..<22 {
+            let x: Double = Double((i * 37) % 100) / 100.0
+            let sp: Double = 0.12 + Double((i * 13) % 10) / 60.0
+            let sz: Double = 3.0 + Double(i % 4)
+            let c: Color = colors[i % colors.count]
+            let ph: Double = Double((i * 29) % 100) / 100.0
+            result.append(Particle(x: x, speed: sp, size: sz, color: c, phaseOffset: ph))
         }
+        return result
     }()
 
     var body: some View {
