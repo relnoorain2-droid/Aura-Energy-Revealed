@@ -20,6 +20,7 @@ struct SettingsView: View {
 
     @State private var showAbout = false
     @State private var confirmDelete = false
+    @State private var showInstructions = false
 
     var body: some View {
         ZStack {
@@ -31,6 +32,29 @@ struct SettingsView: View {
                         .font(AuraFont.display(26, relativeTo: .title))
                         .foregroundStyle(AuraPalette.ink)
                         .padding(.top, 22)
+
+                    // Instructions
+                    settingsGroup(title: "📖 Guide") {
+                        Button {
+                            showInstructions = true
+                            Haptics.impactSoft()
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text("Instructions")
+                                        .font(AuraFont.text(13.5, weight: .medium))
+                                        .foregroundStyle(AuraPalette.ink)
+                                    Text("How to use Aura, step by step")
+                                        .font(AuraFont.text(11, weight: .light))
+                                        .foregroundStyle(AuraPalette.inkDim)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(AuraPalette.inkGhost)
+                            }
+                        }
+                    }
 
                     // Notifications
                     settingsGroup(title: "🔔 Notifications") {
@@ -132,6 +156,7 @@ struct SettingsView: View {
             .scrollIndicators(.hidden)
         }
         .sheet(isPresented: $showAbout) { aboutSheet }
+        .sheet(isPresented: $showInstructions) { InstructionsView() }
         .confirmationDialog("Delete everything?", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("Delete all data", role: .destructive) { deleteAll() }
             Button("Keep my journey", role: .cancel) {}

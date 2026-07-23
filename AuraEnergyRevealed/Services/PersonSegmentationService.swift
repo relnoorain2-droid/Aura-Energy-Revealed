@@ -6,6 +6,16 @@
 //  Produces (1) the person cut out on transparency and (2) a colored,
 //  blurred silhouette glow to layer behind them as the aura.
 //
+//  IMPORTANT — orientation:
+//  Camera and photo-library images almost always carry a non-.up EXIF
+//  orientation (portrait selfies are typically .right / .leftMirrored).
+//  Vision returns its mask in the *oriented* (visually upright) space, but
+//  the raw `cgImage` is in the un-rotated sensor space. Blending the two
+//  directly is what produced the tilted, badly-cropped cutout. The fix is
+//  to bake the orientation into an upright bitmap ONCE, up front, and do
+//  every subsequent step (Vision + cutout + glow) in that single, shared,
+//  already-upright coordinate space.
+//
 
 import Vision
 import CoreImage
@@ -13,7 +23,7 @@ import CoreImage.CIFilterBuiltins
 import UIKit
 
 struct SegmentationResult {
-    /// Original photo, unchanged. The user's identity remains the focus.
+    /// Upright photo (orientation baked in). The user's identity stays the focus.
     let original: UIImage
     /// Person isolated on transparent background (nil if no person found).
     let personCutout: UIImage?
@@ -30,33 +40,44 @@ enum PersonSegmentationService {
     }
 
     private static func processSync(image: UIImage, glowColor: UIColor) -> SegmentationResult {
-        guard let cgImage = image.cgImage else {
-            return SegmentationResult(original: image, personCutout: nil, auraGlow: nil)
+        // Step 0 — normalise to an upright image so mask and pixels always agree.
+        let upright = image.normalizedUp()
+
+        guard let cgImage = upright.cgImage else {
+            return SegmentationResult(original: upright, personCutout: nil, auraGlow: nil)
         }
 
         let request = VNGeneratePersonSegmentationRequest()
-        request.qualityLevel = .balanced
+        request.qualityLevel = .accurate          // sharper edges around hair/shoulders
         request.outputPixelFormat = kCVPixelFormatType_OneComponent8
 
-        let handler = VNImageRequestHandler(cgImage: cgImage, orientation: cgOrientation(from: image.imageOrientation))
+        // The image is already upright, so Vision runs with .up — mask now
+        // lives in exactly the same coordinate space as `cgImage`.
+        let handler = VNImageRequestHandler(cgImage: cgImage, orientation: .up)
         do {
             try handler.perform([request])
         } catch {
-            return SegmentationResult(original: image, personCutout: nil, auraGlow: nil)
+            return SegmentationResult(original: upright, personCutout: nil, auraGlow: nil)
         }
 
         guard let maskBuffer = request.results?.first?.pixelBuffer else {
-            return SegmentationResult(original: image, personCutout: nil, auraGlow: nil)
+            return SegmentationResult(original: upright, personCutout: nil, auraGlow: nil)
         }
 
         let ciContext = CIContext()
         let inputImage = CIImage(cgImage: cgImage)
         var maskImage = CIImage(cvPixelBuffer: maskBuffer)
 
-        // Scale mask to image size
+        // Scale mask up to the full image size (mask is lower-res).
         let scaleX = inputImage.extent.width / maskImage.extent.width
         let scaleY = inputImage.extent.height / maskImage.extent.height
         maskImage = maskImage.transformed(by: .init(scaleX: scaleX, y: scaleY))
+
+        // Slightly soften the mask edge so the cutout doesn't look cut with scissors.
+        maskImage = maskImage
+            .clampedToExtent()
+            .applyingGaussianBlur(sigma: 1.5)
+            .cropped(to: inputImage.extent)
 
         // 1) Person cutout on transparency
         let blend = CIFilter.blendWithMask()
@@ -66,7 +87,7 @@ enum PersonSegmentationService {
         var cutout: UIImage?
         if let output = blend.outputImage,
            let cg = ciContext.createCGImage(output, from: inputImage.extent) {
-            cutout = UIImage(cgImage: cg, scale: image.scale, orientation: .up)
+            cutout = UIImage(cgImage: cg, scale: upright.scale, orientation: .up)
         }
 
         // 2) Aura glow: tinted silhouette, heavily blurred
@@ -82,24 +103,27 @@ enum PersonSegmentationService {
                 .applyingGaussianBlur(sigma: Double(inputImage.extent.width) * 0.045)
                 .cropped(to: inputImage.extent.insetBy(dx: -60, dy: -60))
             if let cg = ciContext.createCGImage(blurred, from: blurred.extent) {
-                glow = UIImage(cgImage: cg, scale: image.scale, orientation: .up)
+                glow = UIImage(cgImage: cg, scale: upright.scale, orientation: .up)
             }
         }
 
-        return SegmentationResult(original: image, personCutout: cutout, auraGlow: glow)
+        return SegmentationResult(original: upright, personCutout: cutout, auraGlow: glow)
     }
+}
 
-    private static func cgOrientation(from ui: UIImage.Orientation) -> CGImagePropertyOrientation {
-        switch ui {
-        case .up: .up
-        case .down: .down
-        case .left: .left
-        case .right: .right
-        case .upMirrored: .upMirrored
-        case .downMirrored: .downMirrored
-        case .leftMirrored: .leftMirrored
-        case .rightMirrored: .rightMirrored
-        @unknown default: .up
+private extension UIImage {
+    /// Returns a copy whose pixels are already rotated to the upright (.up)
+    /// orientation, with the EXIF orientation flag cleared. This guarantees
+    /// that anything derived from `.cgImage` afterwards is in the same
+    /// visual space the user actually sees.
+    func normalizedUp() -> UIImage {
+        if imageOrientation == .up { return self }
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = scale
+        format.opaque = false
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
+        return renderer.image { _ in
+            draw(in: CGRect(origin: .zero, size: size))
         }
     }
 }

@@ -15,11 +15,13 @@ struct MeditationPlayerView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage("meditationsCompleted") private var meditationsCompleted = 0
     @AppStorage("weeklyCalmMinutes") private var weeklyCalmMinutes = 70.0
+    @AppStorage("meditationSoundMuted") private var soundMuted = false
 
     @State private var elapsed: TimeInterval = 0
     @State private var isPlaying = true
     @State private var breathPhase: BreathPhase = .inhale
     @State private var timer: Timer?
+    @State private var audio = MeditationAudioService()
 
     private enum BreathPhase: String {
         case inhale = "Breathe in"
@@ -66,6 +68,20 @@ struct MeditationPlayerView: View {
                 HStack {
                     MonoLabel(text: "Meditation")
                     Spacer()
+                    Button {
+                        soundMuted.toggle()
+                        audio.isMuted = soundMuted
+                        Haptics.impactSoft()
+                    } label: {
+                        Image(systemName: soundMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(AuraPalette.ink.opacity(0.6))
+                            .frame(width: 32, height: 32)
+                            .background(.ultraThinMaterial, in: Circle())
+                    }
+                    .accessibilityLabel(soundMuted ? "Unmute sound" : "Mute sound")
+                    .padding(.trailing, 8)
+
                     Button { finish() } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 13, weight: .medium))
@@ -161,8 +177,8 @@ struct MeditationPlayerView: View {
                 .padding(.bottom, 40)
             }
         }
-        .onAppear { startTimers() }
-        .onDisappear { timer?.invalidate() }
+        .onAppear { startAudio(); startTimers() }
+        .onDisappear { timer?.invalidate(); audio.stop() }
         .presentationDragIndicator(.visible)
     }
 
@@ -172,6 +188,12 @@ struct MeditationPlayerView: View {
                 .font(.system(size: 18))
                 .foregroundStyle(AuraPalette.ink.opacity(0.6))
         }
+    }
+
+    private func startAudio() {
+        audio.isMuted = soundMuted
+        audio.start(baseHz: 110)
+        audio.speak(breathPhase.rawValue)
     }
 
     private func startTimers() {
@@ -191,12 +213,14 @@ struct MeditationPlayerView: View {
             }
             breathPhase = breathPhase.next
             Haptics.impactSoft()
+            audio.speak(breathPhase.rawValue)
             advanceBreath()
         }
     }
 
     private func finish() {
         timer?.invalidate()
+        audio.stop()
         if elapsed >= total * 0.8 {
             meditationsCompleted += 1
             weeklyCalmMinutes += Double(meditation.minutes)
