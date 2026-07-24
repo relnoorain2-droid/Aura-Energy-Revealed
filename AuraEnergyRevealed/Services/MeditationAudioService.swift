@@ -10,12 +10,16 @@
 //    2. Voice cues — spoken "Breathe in / Hold / Breathe out" guidance via
 //       Apple's on-device AVSpeechSynthesizer, timed to the 4-7-8 pattern.
 //
-//  A single mute flag silences both. Honours the ring/silent routing by using
-//  the .playback audio-session category so meditation keeps playing.
+//  Lifecycle contract:
+//    • stop() is idempotent and FINAL — after it runs, no sound can play until
+//      start() is called again. speak() is a no-op unless the service is
+//      running, so a stray call can never revive audio.
+//    • An audio-session interruption (a phone call, Siri, another app) pauses
+//      playback and notifies the UI via onInterruptionBegan.
+//    • deinit stops everything, so a released player can never orphan sound.
 //
 
 import AVFoundation
-import UIKit
 
 final class MeditationAudioService {
 
@@ -30,8 +34,15 @@ final class MeditationAudioService {
     private var phase3: Double = 0   // octave
     private var lfoPhase: Double = 0 // slow amplitude swell
 
-    /// Base pitch of the pad, tinted by the meditation's aura colour.
+    private var graphBuilt = false
+    private var interruptionObserver: NSObjectProtocol?
+
+    /// Base pitch of the pad.
     private var rootHz: Double = 110
+
+    /// Called (on the main queue) when the audio session is interrupted so the
+    /// player can reflect the paused state.
+    var onInterruptionBegan: (() -> Void)?
 
     private(set) var isRunning = false
     var isMuted = false {
@@ -40,13 +51,16 @@ final class MeditationAudioService {
 
     private let padVolume: Float = 0.5
 
+    deinit { stop() }
+
     // MARK: - Lifecycle
 
     func start(baseHz: Double = 110) {
         guard !isRunning else { return }
         rootHz = baseHz
         configureSession()
-        buildGraph()
+        registerInterruptionObserver()
+        buildGraphIfNeeded()
         do {
             try engine.start()
             engine.mainMixerNode.outputVolume = isMuted ? 0 : padVolume
@@ -56,21 +70,38 @@ final class MeditationAudioService {
         }
     }
 
-    func stop() {
-        guard isRunning else { return }
+    /// Temporarily silence without tearing down (tap-to-pause).
+    func pause() {
         synth.stopSpeaking(at: .immediate)
-        engine.stop()
-        if let node = sourceNode { engine.detach(node) }
-        sourceNode = nil
-        isRunning = false
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        if engine.isRunning { engine.pause() }
+    }
+
+    /// Resume after pause(). No-op if the service was fully stopped.
+    func resume() {
+        guard isRunning else { return }
+        try? engine.start()
+    }
+
+    /// The one, final stop. Safe to call repeatedly and from any state.
+    func stop() {
+        synth.stopSpeaking(at: .immediate)
+        if engine.isRunning { engine.stop() }
+        if let observer = interruptionObserver {
+            NotificationCenter.default.removeObserver(observer)
+            interruptionObserver = nil
+        }
+        if isRunning {
+            isRunning = false
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        }
     }
 
     // MARK: - Voice cues
 
-    /// Speak a short breath cue. No-op when muted.
+    /// Speak a short breath cue. No-op unless running and unmuted, so a stray
+    /// call after stop() can never restart audio.
     func speak(_ text: String) {
-        guard !isMuted else { return }
+        guard isRunning, !isMuted else { return }
         let utterance = AVSpeechUtterance(string: text)
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.82
         utterance.pitchMultiplier = 0.96
@@ -88,7 +119,28 @@ final class MeditationAudioService {
         try? session.setActive(true)
     }
 
-    private func buildGraph() {
+    private func registerInterruptionObserver() {
+        guard interruptionObserver == nil else { return }
+        interruptionObserver = NotificationCenter.default.addObserver(
+            forName: AVAudioSession.interruptionNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            guard let self,
+                  let info = note.userInfo,
+                  let raw = info[AVAudioSessionInterruptionTypeKey] as? UInt,
+                  let type = AVAudioSession.InterruptionType(rawValue: raw)
+            else { return }
+            if type == .began {
+                self.synth.stopSpeaking(at: .immediate)
+                if self.engine.isRunning { self.engine.pause() }
+                self.onInterruptionBegan?()
+            }
+        }
+    }
+
+    private func buildGraphIfNeeded() {
+        guard !graphBuilt else { return }
         let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 2)!
 
         let node = AVAudioSourceNode { [weak self] _, _, frameCount, audioBufferList -> OSStatus in
@@ -128,5 +180,6 @@ final class MeditationAudioService {
 
         engine.connect(node, to: reverb, format: format)
         engine.connect(reverb, to: engine.mainMixerNode, format: format)
+        graphBuilt = true
     }
 }
