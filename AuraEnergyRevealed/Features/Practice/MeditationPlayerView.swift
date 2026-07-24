@@ -5,6 +5,14 @@
 //  Screen 14 — the breathing player. The aura expands on inhale and
 //  contracts on exhale (4-7-8 pacing). Tap the orb to pause/play.
 //
+//  Audio lifecycle (important):
+//  Breathing cadence, the elapsed clock and the spoken cues are ALL driven by
+//  a single, cancelable Timer. There are deliberately no free-running
+//  DispatchQueue.asyncAfter loops — those cannot be cancelled and were the
+//  cause of sound continuing after the screen was closed. `teardown()` is the
+//  one place that stops everything, and it runs on close, on finish, when the
+//  app leaves the foreground, and on audio interruptions.
+//
 
 import SwiftUI
 
@@ -12,6 +20,7 @@ struct MeditationPlayerView: View {
     let meditation: Meditation
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage("meditationsCompleted") private var meditationsCompleted = 0
     @AppStorage("weeklyCalmMinutes") private var weeklyCalmMinutes = 70.0
@@ -20,8 +29,10 @@ struct MeditationPlayerView: View {
     @State private var elapsed: TimeInterval = 0
     @State private var isPlaying = true
     @State private var breathPhase: BreathPhase = .inhale
+    @State private var phaseRemaining: Double = BreathPhase.inhale.duration
     @State private var timer: Timer?
     @State private var audio = MeditationAudioService()
+    @State private var didComplete = false
 
     private enum BreathPhase: String {
         case inhale = "Breathe in"
@@ -89,6 +100,7 @@ struct MeditationPlayerView: View {
                             .frame(width: 32, height: 32)
                             .background(.ultraThinMaterial, in: Circle())
                     }
+                    .accessibilityLabel("Close meditation")
                 }
                 .padding(.horizontal, AuraSpacing.gutter)
                 .padding(.top, 20)
@@ -96,10 +108,7 @@ struct MeditationPlayerView: View {
                 Spacer()
 
                 // Breathing orb — tap to pause/play
-                Button {
-                    isPlaying.toggle()
-                    Haptics.impactSoft()
-                } label: {
+                Button { togglePlay() } label: {
                     AuraOrbView(style: meditation.hue.orbStyle, size: 190)
                         .scaleEffect(reduceMotion || !isPlaying ? 1 : breathPhase.scale)
                         .animation(.easeInOut(duration: breathPhase.duration), value: breathPhase)
@@ -150,10 +159,7 @@ struct MeditationPlayerView: View {
                 HStack(spacing: 34) {
                     transportButton("gobackward.15") { elapsed = max(0, elapsed - 15) }
 
-                    Button {
-                        isPlaying.toggle()
-                        Haptics.impactSoft()
-                    } label: {
+                    Button { togglePlay() } label: {
                         Circle()
                             .fill(
                                 LinearGradient(
@@ -177,8 +183,15 @@ struct MeditationPlayerView: View {
                 .padding(.bottom, 40)
             }
         }
-        .onAppear { startAudio(); startTimers() }
-        .onDisappear { timer?.invalidate(); audio.stop() }
+        .onAppear { begin() }
+        .onDisappear { teardown() }
+        // If the app is backgrounded or covered, always silence + stop.
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active {
+                isPlaying = false
+                teardown()
+            }
+        }
         .presentationDragIndicator(.visible)
     }
 
@@ -190,38 +203,68 @@ struct MeditationPlayerView: View {
         }
     }
 
-    private func startAudio() {
+    // MARK: - Playback control
+
+    private func begin() {
+        isPlaying = true
+        audio.onInterruptionBegan = {
+            isPlaying = false
+            teardown()
+        }
         audio.isMuted = soundMuted
         audio.start(baseHz: 110)
         audio.speak(breathPhase.rawValue)
+        startTimer()
     }
 
-    private func startTimers() {
-        advanceBreath()
+    private func togglePlay() {
+        Haptics.impactSoft()
+        isPlaying.toggle()
+        if isPlaying {
+            // Resume — restart audio/timer if they were fully stopped
+            // (e.g. after returning from the background).
+            if !audio.isRunning {
+                audio.isMuted = soundMuted
+                audio.start(baseHz: 110)
+            } else {
+                audio.resume()
+            }
+            if timer == nil { startTimer() }
+        } else {
+            audio.pause()
+        }
+    }
+
+    private func startTimer() {
+        timer?.invalidate()
+        phaseRemaining = breathPhase.duration
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             guard isPlaying else { return }
+
             elapsed += 1
-            if elapsed >= total { finish() }
+            if elapsed >= total { finish(); return }
+
+            phaseRemaining -= 1
+            if phaseRemaining <= 0 {
+                breathPhase = breathPhase.next
+                phaseRemaining = breathPhase.duration
+                Haptics.impactSoft()
+                audio.speak(breathPhase.rawValue)
+            }
         }
     }
 
-    private func advanceBreath() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + breathPhase.duration) {
-            guard isPlaying else {
-                advanceBreath()
-                return
-            }
-            breathPhase = breathPhase.next
-            Haptics.impactSoft()
-            audio.speak(breathPhase.rawValue)
-            advanceBreath()
-        }
+    /// The single, authoritative stop. Safe to call repeatedly.
+    private func teardown() {
+        timer?.invalidate()
+        timer = nil
+        audio.stop()
     }
 
     private func finish() {
-        timer?.invalidate()
-        audio.stop()
-        if elapsed >= total * 0.8 {
+        teardown()
+        if !didComplete, elapsed >= total * 0.8 {
+            didComplete = true
             meditationsCompleted += 1
             weeklyCalmMinutes += Double(meditation.minutes)
             Haptics.success()
