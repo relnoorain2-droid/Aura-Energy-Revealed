@@ -107,6 +107,27 @@ struct PaywallView: View {
                     .font(AuraFont.text(12))
                     .foregroundStyle(AuraPalette.inkGhost)
                     .padding(.top, 12)
+
+                    // Legal — required in-app for auto-renewable subscriptions (Guideline 3.1.2)
+                    VStack(spacing: 8) {
+                        Text("Payment is charged to your Apple Account at confirmation of purchase. Your subscription renews automatically unless it is cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in your Apple Account settings.")
+                            .font(AuraFont.text(9.5, weight: .light))
+                            .foregroundStyle(AuraPalette.inkGhost)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        HStack(spacing: 8) {
+                            Link("Terms of Use (EULA)",
+                                 destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
+                            Text("·").foregroundStyle(AuraPalette.inkGhost)
+                            Link("Privacy Policy",
+                                 destination: URL(string: "https://sites.google.com/view/auraenergyrevealed")!)
+                        }
+                        .font(AuraFont.text(11, weight: .medium))
+                        .foregroundStyle(AuraPalette.electricBlue)
+                    }
+                    .padding(.top, 14)
+                    .padding(.horizontal, 6)
                     .padding(.bottom, 30)
                 }
                 .padding(.horizontal, AuraSpacing.gutter)
