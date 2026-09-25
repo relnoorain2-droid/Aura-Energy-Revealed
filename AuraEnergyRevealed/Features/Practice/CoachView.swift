@@ -1,45 +1,22 @@
 //
 //  CoachView.swift
-//  Aura Energy Revealed
+//  Auralis
 //
-//  Screen 16 — the AI wellness coach. Warm, encouraging, never medical.
-//  On-device scripted guidance today; the CoachResponding seam is ready
-//  for a cloud AI API later. Aura+ core feature; free gets a daily teaser.
+//  Screen 16 — the Aura Coach.
+//
+//  Replies come from CoachService, which talks to our relay when it can and
+//  answers on-device when it can't. CoachService never throws, so this view has
+//  no error state to render: a reply always arrives.
+//
+//  Conversations are metered by CoachQuota. When someone runs out, they are
+//  offered more through StoreKit only — never an external payment link
+//  (App Store Review Guideline 3.1.1).
 //
 
 import SwiftUI
 import SwiftData
 
-protocol CoachResponding {
-    func reply(to message: String, todaysAura: AuraHue?, intentions: [String]) -> String
-}
-
-struct LocalCoach: CoachResponding {
-    func reply(to message: String, todaysAura: AuraHue?, intentions: [String]) -> String {
-        let lower = message.lowercased()
-        if lower.contains("scatter") || lower.contains("anx") || lower.contains("stress") {
-            return "Let's try a 5-minute grounding breath together. Inhale for 4, hold for 7, out for 8 — I'll be right here. 🌙"
-        }
-        if lower.contains("tired") || lower.contains("exhaust") || lower.contains("drained") {
-            return "Rest is a practice too. Would a short body-scan help you put the day down gently?"
-        }
-        if lower.contains("happy") || lower.contains("good") || lower.contains("great") {
-            return "Beautiful. Take ten seconds to really feel that — naming a good moment helps it stay."
-        }
-        if lower.contains("sad") || lower.contains("down") || lower.contains("low") {
-            return "Thank you for telling me. Low days are part of a full life. A slow walk or the Heart Opening practice can be a soft next step — and talking with someone you trust always helps."
-        }
-        if let aura = todaysAura {
-            return "Your \(aura.displayName.lowercased()) reading suggests \(aura.essence.lowercased()). Want a short practice matched to that energy?"
-        }
-        if let intention = intentions.first {
-            return "You set an intention of \(intention.lowercased()) — how has that been showing up for you today?"
-        }
-        return "I'm here. Tell me how your energy feels right now, and we'll find a small practice to match it."
-    }
-}
-
-private struct ChatMessage: Identifiable {
+private struct ChatMessage: Identifiable, Equatable {
     let id = UUID()
     let text: String
     let isUser: Bool
@@ -48,19 +25,24 @@ private struct ChatMessage: Identifiable {
 struct CoachView: View {
     @Environment(StoreService.self) private var store
     @Environment(AppState.self) private var appState
+    @Environment(CoachQuota.self) private var quota
     @Environment(\.dismiss) private var dismiss
+
     @Query(sort: \AuraReading.date, order: .reverse) private var readings: [AuraReading]
+    @Query(sort: \JournalEntry.date, order: .reverse) private var journal: [JournalEntry]
 
     @State private var messages: [ChatMessage] = []
     @State private var draft = ""
-    @State private var freeMessagesUsed = 0
+    @State private var isThinking = false
     @FocusState private var inputFocused: Bool
 
-    private let coach: CoachResponding = LocalCoach()
+    private let coach = CoachService()
 
     private var todaysAura: AuraHue? {
         readings.first { Calendar.current.isDateInToday($0.date) }?.dominant
     }
+
+    private var canSend: Bool { quota.canSend(isSubscribed: store.isSubscribed) }
 
     var body: some View {
         ZStack {
@@ -68,78 +50,72 @@ struct CoachView: View {
             RadialBloom(color: AuraPalette.auroraPurpleDeep, center: .init(x: 0.2, y: 0), opacity: 0.22)
 
             VStack(spacing: 0) {
-                // Header
-                HStack(spacing: 10) {
-                    AuraOrbView(style: .brand, size: 34)
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("Aura Coach")
-                            .font(AuraFont.text(14, weight: .semibold))
-                            .foregroundStyle(AuraPalette.ink)
-                        HStack(spacing: 4) {
-                            Circle().fill(AuraPalette.emerald).frame(width: 5, height: 5)
-                            Text("ONLINE")
-                                .font(AuraFont.mono(8))
-                                .foregroundStyle(AuraPalette.emerald)
-                        }
-                    }
-                    Spacer()
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 13))
-                            .foregroundStyle(AuraPalette.ink.opacity(0.6))
-                    }
-                }
-                .padding(.horizontal, AuraSpacing.gutter)
-                .padding(.vertical, 14)
+                header
 
-                // Messages
                 ScrollViewReader { proxy in
                     ScrollView {
                         VStack(spacing: 10) {
                             ForEach(messages) { message in
-                                bubble(message)
-                                    .id(message.id)
+                                bubble(message).id(message.id)
+                            }
+                            if isThinking {
+                                TypingBubble().id("typing")
                             }
                         }
                         .padding(.horizontal, AuraSpacing.gutter)
                         .padding(.bottom, 10)
                     }
                     .scrollIndicators(.hidden)
-                    .onChange(of: messages.count) {
-                        if let last = messages.last {
-                            withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
-                        }
-                    }
+                    .onChange(of: messages.count) { scrollToEnd(proxy) }
+                    .onChange(of: isThinking) { scrollToEnd(proxy) }
                 }
 
-                // Input / gate
-                if store.isSubscribed || freeMessagesUsed < 1 {
+                if canSend {
                     inputBar
-                } else {
+                } else if !store.isSubscribed {
                     upgradeBar
+                } else {
+                    topUpBar
                 }
             }
         }
-        .onAppear {
-            if messages.isEmpty {
-                let opener = todaysAura.map {
-                    "Your \($0.displayName.lowercased()) reading suggests a \(quality(for: $0)) day. Want a short practice to match it?"
-                } ?? "Welcome. I read your auras, journal, and streak to suggest small practices. How does your energy feel right now?"
-                messages.append(ChatMessage(text: opener, isUser: false))
-            }
-        }
+        .onAppear(perform: seedOpeningMessage)
         .presentationDragIndicator(.visible)
     }
 
-    private func quality(for hue: AuraHue) -> String {
-        switch hue {
-        case .violet, .purple, .indigo: "reflective"
-        case .blue, .white, .silver: "calm"
-        case .green, .pink: "open-hearted"
-        case .gold, .rainbow: "bright"
-        case .red: "energised"
+    // MARK: Header
+
+    private var header: some View {
+        HStack(spacing: 10) {
+            AuraOrbView(style: .brand, size: 34)
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Aura Coach")
+                    .font(AuraFont.text(14, weight: .semibold))
+                    .foregroundStyle(AuraPalette.ink)
+                Text(remainingLabel)
+                    .font(AuraFont.mono(8))
+                    .foregroundStyle(AuraPalette.inkGhost)
+            }
+            Spacer()
+            Button { dismiss() } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 13))
+                    .foregroundStyle(AuraPalette.ink.opacity(0.6))
+            }
+            .accessibilityLabel("Close")
         }
+        .padding(.horizontal, AuraSpacing.gutter)
+        .padding(.vertical, 14)
     }
+
+    private var remainingLabel: String {
+        let left = quota.remainingTotal(isSubscribed: store.isSubscribed)
+        if left <= 0 { return "NO CONVERSATIONS LEFT" }
+        if left > 99 { return "READY" }
+        return "\(left) CONVERSATION\(left == 1 ? "" : "S") LEFT"
+    }
+
+    // MARK: Bubbles
 
     private func bubble(_ message: ChatMessage) -> some View {
         HStack {
@@ -148,6 +124,7 @@ struct CoachView: View {
                 .font(AuraFont.text(13))
                 .foregroundStyle(.white)
                 .lineSpacing(3)
+                .textSelection(.enabled)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
                 .background {
@@ -165,22 +142,25 @@ struct CoachView: View {
         }
     }
 
+    // MARK: Input & gates
+
     private var inputBar: some View {
         HStack(spacing: 8) {
-            TextField("Ask anything…", text: $draft)
+            TextField("Ask anything…", text: $draft, axis: .vertical)
+                .lineLimit(1...4)
                 .focused($inputFocused)
                 .font(AuraFont.text(13))
                 .foregroundStyle(AuraPalette.ink)
                 .padding(.horizontal, 14)
-                .frame(height: 40)
+                .padding(.vertical, 10)
                 .background {
-                    Capsule().fill(.white.opacity(0.06))
-                    Capsule().strokeBorder(.white.opacity(0.1), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 20).fill(.white.opacity(0.06))
+                    RoundedRectangle(cornerRadius: 20).strokeBorder(.white.opacity(0.1), lineWidth: 1)
                 }
+                .disabled(isThinking)
+                .onSubmit(send)
 
-            Button {
-                send()
-            } label: {
+            Button(action: send) {
                 Circle()
                     .fill(AuraPalette.primaryGradient)
                     .frame(width: 40, height: 40)
@@ -189,13 +169,20 @@ struct CoachView: View {
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(.white)
                     }
+                    .opacity(sendEnabled ? 1 : 0.4)
             }
-            .disabled(draft.trimmingCharacters(in: .whitespaces).isEmpty)
+            .disabled(!sendEnabled)
+            .accessibilityLabel("Send message")
         }
         .padding(.horizontal, AuraSpacing.gutter)
         .padding(.vertical, 12)
     }
 
+    private var sendEnabled: Bool {
+        !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isThinking
+    }
+
+    /// Free tier exhausted — subscribing is the better value, so lead with that.
     private var upgradeBar: some View {
         Button {
             dismiss()
@@ -203,11 +190,15 @@ struct CoachView: View {
         } label: {
             GlassCard(padding: 14, tint: AuraPalette.gold) {
                 HStack {
-                    Image(systemName: "sparkles")
-                        .foregroundStyle(AuraPalette.gold)
-                    Text("Continue the conversation with Aura+")
-                        .font(AuraFont.text(13, weight: .semibold))
-                        .foregroundStyle(AuraPalette.ink)
+                    Image(systemName: "sparkles").foregroundStyle(AuraPalette.gold)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Continue with Aura+")
+                            .font(AuraFont.text(13, weight: .semibold))
+                            .foregroundStyle(AuraPalette.ink)
+                        Text("Includes \(CoachQuota.subscriberWeeklyMessages) conversations a week")
+                            .font(AuraFont.text(11))
+                            .foregroundStyle(AuraPalette.inkGhost)
+                    }
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.system(size: 12))
@@ -220,17 +211,154 @@ struct CoachView: View {
         .padding(.vertical, 12)
     }
 
+    /// Subscriber who used the whole weekly allowance — offer a top-up via Apple.
+    private var topUpBar: some View {
+        VStack(spacing: 8) {
+            Button {
+                Task { await store.purchaseCoachTopUp() }
+            } label: {
+                GlassCard(padding: 14, tint: AuraPalette.gold) {
+                    HStack {
+                        Image(systemName: "bubble.left.and.text.bubble.right")
+                            .foregroundStyle(AuraPalette.gold)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("\(CoachTopUp.title) · \(store.topUpDisplayPrice)")
+                                .font(AuraFont.text(13, weight: .semibold))
+                                .foregroundStyle(AuraPalette.ink)
+                            Text(CoachTopUp.blurb)
+                                .font(AuraFont.text(11))
+                                .foregroundStyle(AuraPalette.inkGhost)
+                        }
+                        Spacer()
+                        if store.purchaseInFlight {
+                            ProgressView().tint(AuraPalette.gold)
+                        } else {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12))
+                                .foregroundStyle(AuraPalette.inkGhost)
+                        }
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(store.purchaseInFlight)
+
+            Text(quota.renewalDescription(isSubscribed: store.isSubscribed))
+                .font(AuraFont.text(10))
+                .foregroundStyle(AuraPalette.inkGhost)
+        }
+        .padding(.horizontal, AuraSpacing.gutter)
+        .padding(.vertical, 12)
+    }
+
+    // MARK: Behaviour
+
+    private func scrollToEnd(_ proxy: ScrollViewProxy) {
+        withAnimation(.easeOut(duration: 0.25)) {
+            if isThinking {
+                proxy.scrollTo("typing", anchor: .bottom)
+            } else if let last = messages.last {
+                proxy.scrollTo(last.id, anchor: .bottom)
+            }
+        }
+    }
+
+    private func seedOpeningMessage() {
+        guard messages.isEmpty else { return }
+        let opener = todaysAura.map {
+            "Your \($0.displayName.lowercased()) reading points toward \($0.essence.lowercased()). How does that sit with how you actually feel today?"
+        } ?? "Welcome. I read your aura history, journal and streak to suggest small practices. How does your energy feel right now?"
+        messages.append(ChatMessage(text: opener, isUser: false))
+    }
+
+    private func buildContext() -> CoachContext {
+        var context = CoachContext()
+        context.userName = appState.userName
+        context.todaysAura = todaysAura
+        context.recentAuras = Array(readings.prefix(5).map(\.dominant))
+        context.intentions = appState.intentions
+        context.recentMoods = Array(journal.prefix(5).flatMap(\.moods).prefix(6))
+        context.streakDays = currentStreak
+        return context
+    }
+
+    /// Consecutive days with at least one reading, counting back from today.
+    private var currentStreak: Int {
+        let calendar = Calendar.current
+        let days = Set(readings.map { calendar.startOfDay(for: $0.date) })
+        guard !days.isEmpty else { return 0 }
+        var streak = 0
+        var cursor = calendar.startOfDay(for: .now)
+        if !days.contains(cursor) {
+            guard let back = calendar.date(byAdding: .day, value: -1, to: cursor) else { return 0 }
+            cursor = back
+        }
+        while days.contains(cursor) {
+            streak += 1
+            guard let back = calendar.date(byAdding: .day, value: -1, to: cursor) else { break }
+            cursor = back
+        }
+        return streak
+    }
+
     private func send() {
-        let text = draft.trimmingCharacters(in: .whitespaces)
-        guard !text.isEmpty else { return }
+        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, !isThinking, canSend else { return }
+
         draft = ""
         messages.append(ChatMessage(text: text, isUser: true))
-        if !store.isSubscribed { freeMessagesUsed += 1 }
+        quota.consume(isSubscribed: store.isSubscribed)
+        isThinking = true
 
-        // Streamed-feel delay for the reply
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
-            let reply = coach.reply(to: text, todaysAura: todaysAura, intentions: appState.intentions)
-            messages.append(ChatMessage(text: reply, isUser: false))
+        let history = messages.map { CoachTurn(text: $0.text, isUser: $0.isUser) }
+        let context = buildContext()
+
+        Task {
+            // CoachService handles relay failure, quota exhaustion and offline
+            // internally, so a usable reply always comes back.
+            let reply = await coach.reply(to: text, history: history, context: context)
+            await MainActor.run {
+                isThinking = false
+                messages.append(ChatMessage(text: reply, isUser: false))
+                Haptics.impactSoft()
+            }
         }
+    }
+}
+
+// MARK: - Typing indicator
+
+private struct TypingBubble: View {
+    @State private var phase = 0.0
+
+    var body: some View {
+        HStack {
+            HStack(spacing: 4) {
+                ForEach(0..<3, id: \.self) { index in
+                    Circle()
+                        .fill(.white.opacity(0.55))
+                        .frame(width: 6, height: 6)
+                        .scaleEffect(scale(for: index))
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background {
+                UnevenRoundedRectangle(topLeadingRadius: 16, bottomLeadingRadius: 4, bottomTrailingRadius: 16, topTrailingRadius: 16)
+                    .fill(.white.opacity(0.06))
+            }
+            Spacer(minLength: 50)
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+                phase = 1
+            }
+        }
+        .accessibilityLabel("Aura Coach is typing")
+    }
+
+    private func scale(for index: Int) -> Double {
+        let offset = Double(index) * 0.18
+        return 0.7 + 0.5 * abs(sin((phase + offset) * .pi))
     }
 }

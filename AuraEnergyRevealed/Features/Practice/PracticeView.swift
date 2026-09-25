@@ -13,6 +13,8 @@ struct PracticeView: View {
     @State private var showJournal = false
     @State private var showCoach = false
     @State private var showLibrary = false
+    @State private var showRitual = false
+    @State private var showInsights = false
 
     @AppStorage("weeklyCalmMinutes") private var weeklyCalmMinutes = 70.0
     private let weeklyGoal = 100.0
@@ -25,8 +27,11 @@ struct PracticeView: View {
                     .foregroundStyle(AuraPalette.ink)
                     .padding(.top, 10)
 
-                goalRing
+                ritualCard
                     .riseFadeIn(index: 0)
+
+                goalRing
+                    .riseFadeIn(index: 1)
 
                 MonoLabel(text: "Meditations for today")
 
@@ -52,6 +57,11 @@ struct PracticeView: View {
                     showCoach = true
                 }
                 .riseFadeIn(index: 5)
+
+                practiceRow(emoji: "📈", title: "Energy Insights", subtitle: "Patterns across your readings and practice") {
+                    showInsights = true
+                }
+                .riseFadeIn(index: 6)
             }
             .padding(.horizontal, AuraSpacing.gutter)
             .padding(.bottom, 130)
@@ -60,6 +70,39 @@ struct PracticeView: View {
         .sheet(isPresented: $showJournal) { JournalView() }
         .sheet(isPresented: $showCoach) { CoachView() }
         .sheet(isPresented: $showLibrary) { MeditationLibraryView() }
+        .sheet(isPresented: $showRitual) { DailyRitualView() }
+        .sheet(isPresented: $showInsights) { InsightsView() }
+    }
+
+    // MARK: Daily ritual
+
+    private var ritualCard: some View {
+        Button { showRitual = true } label: {
+            GlassCard(padding: 20, tint: AuraPalette.auroraPurple) {
+                HStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("TODAY'S RITUAL")
+                            .font(AuraFont.mono(9))
+                            .foregroundStyle(AuraPalette.inkGhost)
+                        Text("Arrive, breathe, set an intention")
+                            .font(AuraFont.display(19))
+                            .foregroundStyle(AuraPalette.ink)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text("A new four-part practice each day")
+                            .font(AuraFont.text(12))
+                            .foregroundStyle(AuraPalette.inkDim)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(AuraPalette.ink)
+                        .frame(width: 40, height: 40)
+                        .background { Circle().fill(.white.opacity(0.1)) }
+                }
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: Weekly calm goal

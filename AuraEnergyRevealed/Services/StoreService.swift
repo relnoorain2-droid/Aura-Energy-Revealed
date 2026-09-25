@@ -47,13 +47,30 @@ enum AuraPlusPlan: String, CaseIterable, Identifiable {
     }
 }
 
+/// Consumable top-up for extra Aura Coach conversations.
+///
+/// Sold exclusively through StoreKit. The app must never send someone to an
+/// external payment page for digital content — App Store Review Guideline 3.1.1.
+enum CoachTopUp {
+    static let productID = "com.auravision.auracoach.topup"
+    static let fallbackPrice = "$19.99"
+
+    static var title: String { "Extra conversations" }
+    static var blurb: String { "\(CoachQuota.messagesPerTopUp) more Aura Coach conversations. They never expire." }
+}
+
 @Observable
 final class StoreService {
 
     private(set) var products: [Product] = []
+    private(set) var topUpProduct: Product?
     private(set) var isSubscribed = false
     private(set) var purchaseInFlight = false
     var lastErrorMessage: String?
+
+    /// Invoked whenever a coach top-up is verified, from a purchase here or
+    /// from a transaction delivered later. Wired to `CoachQuota` at launch.
+    var onCoachTopUpPurchased: (@MainActor () -> Void)?
 
     private var updatesTask: Task<Void, Never>?
 
@@ -72,15 +89,24 @@ final class StoreService {
     @MainActor
     func loadProducts() async {
         do {
-            let ids = AuraPlusPlan.allCases.map(\.rawValue)
-            products = try await Product.products(for: ids)
+            let planIDs = AuraPlusPlan.allCases.map(\.rawValue)
+            let fetched = try await Product.products(for: planIDs + [CoachTopUp.productID])
+
+            products = fetched
+                .filter { AuraPlusPlan(rawValue: $0.id) != nil }
                 .sorted { lhs, rhs in
                     let order = AuraPlusPlan.allCases.map(\.rawValue)
                     return (order.firstIndex(of: lhs.id) ?? 0) < (order.firstIndex(of: rhs.id) ?? 0)
                 }
+
+            topUpProduct = fetched.first { $0.id == CoachTopUp.productID }
         } catch {
             lastErrorMessage = "The store is resting — try again in a moment."
         }
+    }
+
+    var topUpDisplayPrice: String {
+        topUpProduct?.displayPrice ?? CoachTopUp.fallbackPrice
     }
 
     func product(for plan: AuraPlusPlan) -> Product? {
@@ -109,6 +135,35 @@ final class StoreService {
                 if case .verified(let transaction) = verification {
                     await transaction.finish()
                     await refreshEntitlements()
+                }
+            case .userCancelled, .pending:
+                break
+            @unknown default:
+                break
+            }
+        } catch {
+            lastErrorMessage = "The purchase couldn't complete — nothing was charged."
+        }
+    }
+
+    /// Buy one pack of extra Aura Coach conversations (consumable, Apple-billed).
+    @MainActor
+    func purchaseCoachTopUp() async {
+        guard let product = topUpProduct else {
+            lastErrorMessage = "That isn't available right now."
+            return
+        }
+        purchaseInFlight = true
+        defer { purchaseInFlight = false }
+
+        do {
+            let result = try await product.purchase()
+            switch result {
+            case .success(let verification):
+                if case .verified(let transaction) = verification {
+                    // Grant before finishing so the credit is never lost.
+                    onCoachTopUpPurchased?()
+                    await transaction.finish()
                 }
             case .userCancelled, .pending:
                 break
@@ -149,6 +204,9 @@ final class StoreService {
         updatesTask = Task(priority: .background) { [weak self] in
             for await update in Transaction.updates {
                 if case .verified(let transaction) = update {
+                    if transaction.productID == CoachTopUp.productID {
+                        await MainActor.run { self?.onCoachTopUpPurchased?() }
+                    }
                     await transaction.finish()
                     await self?.refreshEntitlements()
                 }
