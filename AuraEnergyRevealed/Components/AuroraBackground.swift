@@ -15,22 +15,43 @@ struct AuroraBackground: View {
     var body: some View {
         GeometryReader { geo in
             let w = geo.size.width
+            let h = geo.size.height
+
             ZStack {
                 AuraPalette.deepSpace
 
-                bloom(color: AuraPalette.auroraPurpleDeep, size: w * 1.1)
-                    .offset(x: drift ? -w * 0.15 : -w * 0.25, y: drift ? -w * 0.05 : -w * 0.15)
+                // A low, warm horizon — light settling at the bottom of the frame
+                // rather than neon blobs floating in the middle of it.
+                LinearGradient(
+                    colors: [
+                        .clear,
+                        AuraPalette.roseDeep.opacity(intensity * 0.16),
+                        AuraPalette.amber.opacity(intensity * 0.20)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: h * 0.55)
+                .frame(maxHeight: .infinity, alignment: .bottom)
 
-                bloom(color: AuraPalette.electricBlueDeep, size: w * 1.0)
-                    .offset(x: drift ? w * 0.35 : w * 0.45, y: drift ? w * 0.25 : w * 0.15)
+                // One slow, very soft wash high in the frame for depth.
+                wash(color: AuraPalette.indigo, size: w * 1.25)
+                    .offset(
+                        x: drift ? -w * 0.18 : -w * 0.26,
+                        y: drift ? -h * 0.30 : -h * 0.36
+                    )
 
-                bloom(color: AuraPalette.emerald, size: w * 0.9)
-                    .opacity(intensity * 0.7)
-                    .offset(x: drift ? w * 0.15 : w * 0.1, y: drift ? geo.size.height * 0.75 : geo.size.height * 0.85)
+                // A whisper of colour opposite it, kept deliberately faint.
+                wash(color: AuraPalette.auroraPurpleDeep, size: w * 0.95)
+                    .opacity(0.7)
+                    .offset(
+                        x: drift ? w * 0.32 : w * 0.40,
+                        y: drift ? h * 0.05 : h * 0.01
+                    )
             }
             .onAppear {
                 guard !reduceMotion else { return }
-                withAnimation(.easeInOut(duration: 26).repeatForever(autoreverses: true)) {
+                withAnimation(.easeInOut(duration: 34).repeatForever(autoreverses: true)) {
                     drift = true
                 }
             }
@@ -39,19 +60,20 @@ struct AuroraBackground: View {
         .accessibilityHidden(true)
     }
 
-    private func bloom(color: Color, size: CGFloat) -> some View {
+    /// Soft, normal-blended colour. No `.screen` — that is what produces the
+    /// glowing neon look this design is deliberately avoiding.
+    private func wash(color: Color, size: CGFloat) -> some View {
         Circle()
             .fill(
                 RadialGradient(
-                    colors: [color.opacity(intensity), .clear],
+                    colors: [color.opacity(intensity * 0.42), .clear],
                     center: .center,
                     startRadius: 0,
                     endRadius: size * 0.5
                 )
             )
             .frame(width: size, height: size)
-            .blur(radius: 60)
-            .blendMode(.screen)
+            .blur(radius: 70)
     }
 }
 

@@ -12,11 +12,15 @@ struct GlassCard<Content: View>: View {
     var padding: CGFloat = 20
     var cornerRadius: CGFloat = AuraRadius.card
     var tint: Color? = nil
-    var strokeColor: Color = .white.opacity(0.09)
+    var strokeColor: Color = AuraPalette.ink.opacity(0.10)
     @ViewBuilder var content: Content
 
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
+    // A solid, warm card rather than frosted glass. Glassmorphism over a dark
+    // gradient is the most recognisable trait of this app category, so the
+    // surface here is opaque, the border is a warm hairline, and the shadow is
+    // tight instead of a wide diffuse glow.
     var body: some View {
         content
             .padding(padding)
@@ -24,32 +28,15 @@ struct GlassCard<Content: View>: View {
             .background {
                 let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 ZStack {
-                    if reduceTransparency {
-                        shape.fill(AuraPalette.surface)
-                    } else {
-                        shape.fill(.ultraThinMaterial)
-                        shape.fill(
-                            LinearGradient(
-                                colors: [.white.opacity(0.06), .white.opacity(0.02)],
-                                startPoint: .topLeading, endPoint: .bottomTrailing
-                            )
-                        )
-                        if let tint {
-                            shape.fill(tint.opacity(0.10))
-                        }
+                    shape.fill(AuraPalette.surface.opacity(reduceTransparency ? 1.0 : 0.92))
+                    if let tint {
+                        shape.fill(tint.opacity(0.07))
                     }
-                    // Inset top highlight
-                    shape.strokeBorder(
-                        LinearGradient(
-                            colors: [.white.opacity(0.16), strokeColor],
-                            startPoint: .top, endPoint: .bottom
-                        ),
-                        lineWidth: 1
-                    )
+                    shape.strokeBorder(strokeColor, lineWidth: 1)
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            .shadow(color: .black.opacity(0.5), radius: 24, y: 14)
+            .shadow(color: .black.opacity(0.28), radius: 10, y: 5)
     }
 }
 
@@ -102,11 +89,9 @@ struct PrimaryButton: View {
                 .background {
                     RoundedRectangle(cornerRadius: AuraRadius.cta, style: .continuous)
                         .fill(gradient)
-                    RoundedRectangle(cornerRadius: AuraRadius.cta, style: .continuous)
-                        .strokeBorder(.white.opacity(0.3), lineWidth: 1)
-                        .blendMode(.overlay)
                 }
-                .shadow(color: AuraPalette.auroraPurple.opacity(0.5), radius: 17, y: 10)
+                // A grounded drop shadow, not a coloured neon halo.
+                .shadow(color: .black.opacity(0.30), radius: 8, y: 4)
         }
         .pressScale()
     }

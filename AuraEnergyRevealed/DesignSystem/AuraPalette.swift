@@ -22,33 +22,41 @@ extension Color {
 }
 
 enum AuraPalette {
-    // Neutrals
-    static let deepSpace   = Color(hex: 0x0B0B12)   // background
-    static let surface     = Color(hex: 0x14141F)   // raised surface
-    static let ink         = Color(hex: 0xF4F3F8)   // Ink 100
-    static let inkDim      = Color(hex: 0xF4F3F8, opacity: 0.66)
-    static let inkFaint    = Color(hex: 0xF4F3F8, opacity: 0.38)
-    static let inkGhost    = Color(hex: 0xF4F3F8, opacity: 0.45)
+    // MARK: Neutrals — "warm dusk", not cold space.
+    //
+    // The deliberate move away from a pure blue-black background: this base is
+    // a warm plum-ink, and the ink on top is bone rather than blue-white. It
+    // reads closer to dusk light on paper than to a screensaver of outer space.
+    static let deepSpace   = Color(hex: 0x1A1620)   // background
+    static let surface     = Color(hex: 0x241E2C)   // raised surface
+    static let ink         = Color(hex: 0xF6F1E9)   // warm bone
+    static let inkDim      = Color(hex: 0xF6F1E9, opacity: 0.68)
+    static let inkFaint    = Color(hex: 0xF6F1E9, opacity: 0.38)
+    static let inkGhost    = Color(hex: 0xF6F1E9, opacity: 0.46)
 
-    // Aurora spectrum
-    static let auroraPurple      = Color(hex: 0x8B6BF0)
-    static let auroraPurpleDeep  = Color(hex: 0x6D4CE6)
-    static let lavender          = Color(hex: 0xA78BFA)
-    static let violetLight       = Color(hex: 0xC6A9FF)
-    static let electricBlue      = Color(hex: 0x5AA9FF)
-    static let electricBlueDeep  = Color(hex: 0x2FA8FF)
-    static let blueLight         = Color(hex: 0x8FD1FF)
-    static let emerald           = Color(hex: 0x2FD3A0)
-    static let emeraldLight      = Color(hex: 0x7EE8C6)
-    static let gold              = Color(hex: 0xF0CE86)
-    static let goldLight         = Color(hex: 0xF3D89A)
-    static let rose              = Color(hex: 0xEC6FA6)
-    static let roseDeep          = Color(hex: 0xE05C93)
-    static let softRed           = Color(hex: 0xEF6E6E)
-    static let amber             = Color(hex: 0xEF9E5E)
-    static let indigo            = Color(hex: 0x4E5BD0)
-    static let indigoDeep        = Color(hex: 0x1E2A6E)
-    static let silver            = Color(hex: 0xCFD6DE)
+    // MARK: Accents — muted and earthy rather than neon.
+    //
+    // Hue identity is preserved (violet still reads violet, gold still gold) so
+    // readings stay distinguishable, but saturation is pulled well back. The
+    // result is calmer and far less generic than the stock neon spectrum.
+    static let auroraPurple      = Color(hex: 0x8A72C4)
+    static let auroraPurpleDeep  = Color(hex: 0x6B5AA6)
+    static let lavender          = Color(hex: 0xB3A2D9)
+    static let violetLight       = Color(hex: 0xCCBEEA)
+    static let electricBlue      = Color(hex: 0x6E9CC4)
+    static let electricBlueDeep  = Color(hex: 0x4F86B5)
+    static let blueLight         = Color(hex: 0xA8C6DC)
+    static let emerald           = Color(hex: 0x5FB89A)
+    static let emeraldLight      = Color(hex: 0x93D4BE)
+    static let gold              = Color(hex: 0xE0B876)
+    static let goldLight         = Color(hex: 0xEBCD97)
+    static let rose              = Color(hex: 0xD4849B)
+    static let roseDeep          = Color(hex: 0xBF6E86)
+    static let softRed           = Color(hex: 0xD9796E)
+    static let amber             = Color(hex: 0xDB9A63)
+    static let indigo            = Color(hex: 0x5A639E)
+    static let indigoDeep        = Color(hex: 0x2E3560)
+    static let silver            = Color(hex: 0xC5C9C6)
 
     // Semantic — "alerts are never red-blooded"
     static let success   = emerald
@@ -84,10 +92,12 @@ enum AuraSpacing {
     static let gutter: CGFloat = 20
 }
 
+/// Restrained rather than bubbly. The stock template look leans on very large
+/// radii everywhere; pulling these in gives the app a more editorial feel.
 enum AuraRadius {
-    static let sheet: CGFloat = 28
-    static let card: CGFloat = 22
-    static let button: CGFloat = 16
-    static let cta: CGFloat = 18
-    static let tile: CGFloat = 12
+    static let sheet: CGFloat = 20
+    static let card: CGFloat = 14
+    static let button: CGFloat = 12
+    static let cta: CGFloat = 12
+    static let tile: CGFloat = 10
 }
