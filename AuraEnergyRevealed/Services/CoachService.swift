@@ -292,7 +292,9 @@ struct RelayCoachClient: CoachProviding {
             "If someone describes self-harm, suicide, or abuse, do not coach: gently encourage them to reach out to a crisis line, a doctor, or someone they trust.",
             "Avoid clichés, emoji spam, and exclamation marks. No markdown headings or bullet lists."
         ]
-        if !context.userName.isEmpty { lines.append("Their name is \(context.userName).") }
+        // Deliberately NOT sent: the person's name, or anything else that could
+        // identify them. Nothing leaving the device is tied to who they are,
+        // which keeps the App Privacy declaration to "not linked to you".
         if let aura = context.todaysAura {
             lines.append("Today's reading: \(aura.displayName) — \(aura.essence).")
         }
