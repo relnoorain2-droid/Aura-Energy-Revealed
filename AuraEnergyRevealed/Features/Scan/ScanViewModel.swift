@@ -87,7 +87,15 @@ final class ScanViewModel {
             )
 
             let glowColor = UIColor(draft.dominant.orbStyle.colors.first ?? AuraPalette.lavender)
-            segmentation = await PersonSegmentationService.process(image: image, glowColor: glowColor)
+
+            // Person segmentation only means something when the subject IS a
+            // person. Running it on a plant or a room finds nothing and produces
+            // a meaningless cutout, so those subjects keep the photograph whole.
+            if scanMode.isPersonReading {
+                segmentation = await PersonSegmentationService.process(image: image, glowColor: glowColor)
+            } else {
+                segmentation = nil
+            }
 
             // Persist the reading with the photo — the user's image is the hero.
             let reading = AuraReading(

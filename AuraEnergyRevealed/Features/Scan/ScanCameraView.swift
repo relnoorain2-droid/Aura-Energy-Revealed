@@ -51,34 +51,45 @@ struct ScanCameraView: View {
             .ignoresSafeArea()
             .allowsHitTesting(false)
 
-            // Framing guide ring — emerald when ready
-            Ellipse()
-                .strokeBorder(
-                    (ringReady ? AuraPalette.emerald : AuraPalette.gold).opacity(0.8),
-                    lineWidth: 2
-                )
-                .frame(width: 210, height: 250)
-                .shadow(color: AuraPalette.emerald.opacity(ringReady ? 0.35 : 0), radius: 16)
-                .offset(y: -30)
+            // Framing guide — an oval for a face, a wide rectangle for a room
+            // or an object. The shape itself tells you what to point at.
+            framingGuide
                 .allowsHitTesting(false)
 
             VStack {
                 topChrome
                 Spacer()
 
-                Text(ringReady ? "Perfect — hold still ✨" : "Center yourself in the light")
-                    .font(AuraFont.text(13, weight: .semibold))
-                    .foregroundStyle(ringReady ? AuraPalette.emerald : AuraPalette.gold)
-                    .padding(.bottom, 22)
-                    .accessibilityLabel(ringReady ? "Framing is good. Hold still." : "Move to center your face")
+                VStack(spacing: 4) {
+                    Text(ringReady ? "Hold still" : viewModel.scanMode.captureTitle)
+                        .font(AuraFont.text(14, weight: .semibold))
+                        .foregroundStyle(ringReady ? AuraPalette.emerald : AuraPalette.gold)
+                    Text(viewModel.scanMode.captureHint)
+                        .font(AuraFont.text(11))
+                        .foregroundStyle(.white.opacity(0.75))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 40)
+                }
+                .padding(.bottom, 22)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(viewModel.scanMode.captureTitle). \(viewModel.scanMode.captureHint)")
 
                 bottomControls
             }
         }
         .onAppear {
+            // Point the camera at the right subject before the session starts.
+            camera.use(front: viewModel.scanMode.usesFrontCamera)
             camera.requestAndConfigure()
-            // Coaching simulation: ring settles to "ready" after a beat.
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+                withAnimation(AuraMotion.standard) { ringReady = true }
+            }
+        }
+        .onChange(of: viewModel.scanMode) { _, mode in
+            // Switching subject switches the camera with it.
+            camera.use(front: mode.usesFrontCamera)
+            ringReady = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                 withAnimation(AuraMotion.standard) { ringReady = true }
             }
         }
@@ -124,6 +135,28 @@ struct ScanCameraView: View {
         }
         .padding(.horizontal, 22)
         .padding(.top, 8)
+    }
+
+    /// An upright oval for a face; a wide rectangle for a room, plant, pet,
+    /// object or dish. The guide shape alone tells you what to point at.
+    @ViewBuilder
+    private var framingGuide: some View {
+        let tint = (ringReady ? AuraPalette.emerald : AuraPalette.gold).opacity(0.8)
+        let glow = AuraPalette.emerald.opacity(ringReady ? 0.35 : 0)
+
+        if viewModel.scanMode.isPersonReading {
+            Ellipse()
+                .strokeBorder(tint, lineWidth: 2)
+                .frame(width: 210, height: 250)
+                .shadow(color: glow, radius: 16)
+                .offset(y: -30)
+        } else {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(tint, lineWidth: 2)
+                .frame(width: 292, height: 220)
+                .shadow(color: glow, radius: 16)
+                .offset(y: -20)
+        }
     }
 
     private var bottomControls: some View {

@@ -141,4 +141,80 @@ enum ScanMode: String, CaseIterable, Codable, Identifiable {
 
     /// Premium gating: only the self scan is available on the free tier.
     var isPremium: Bool { self != .selfAura }
+
+    // MARK: - How each subject is actually read
+    //
+    // These are what make the modes real rather than decorative. A plant is not
+    // photographed with the selfie camera, is not run through person
+    // segmentation, and does not have chakras.
+
+    /// Only a person is read with the front camera.
+    var usesFrontCamera: Bool {
+        switch self {
+        case .selfAura, .relationship: true
+        case .pet, .plant, .home, .room, .object, .food: false
+        }
+    }
+
+    /// True when the subject is a person, which governs body segmentation,
+    /// the chakra panel and the body map.
+    var isPersonReading: Bool {
+        self == .selfAura || self == .relationship
+    }
+
+    /// Instruction shown over the viewfinder.
+    var captureTitle: String {
+        switch self {
+        case .selfAura: "Frame your face"
+        case .pet: "Frame your companion"
+        case .plant: "Frame the plant"
+        case .home: "Capture your space"
+        case .room: "Capture the room"
+        case .object: "Frame the object"
+        case .food: "Frame the dish"
+        case .relationship: "Frame you both"
+        }
+    }
+
+    /// A short, practical hint under the instruction.
+    var captureHint: String {
+        switch self {
+        case .selfAura: "Hold still for a moment. Even, soft light reads best."
+        case .pet: "Wait for a calm moment, and include their whole body if you can."
+        case .plant: "Include the leaves and the pot, not just one stem."
+        case .home: "Stand back far enough to take in the whole space."
+        case .room: "One corner across to the other, if it fits in frame."
+        case .object: "Fill the frame with the object itself."
+        case .food: "Straight down from above usually reads best."
+        case .relationship: "Both faces in the frame, close together."
+        }
+    }
+
+    /// How the subject is referred to in the reading copy.
+    var subjectNoun: String {
+        switch self {
+        case .selfAura: "your field"
+        case .pet: "your companion's field"
+        case .plant: "this plant"
+        case .home: "your home"
+        case .room: "this room"
+        case .object: "this object"
+        case .food: "this dish"
+        case .relationship: "the space between you"
+        }
+    }
+
+    /// Heading shown above the reading.
+    var resultHeading: String {
+        switch self {
+        case .selfAura: "Your reading"
+        case .pet: "Your companion's reading"
+        case .plant: "This plant's reading"
+        case .home: "Your home's reading"
+        case .room: "This room's reading"
+        case .object: "This object's reading"
+        case .food: "This dish's reading"
+        case .relationship: "Your shared reading"
+        }
+    }
 }

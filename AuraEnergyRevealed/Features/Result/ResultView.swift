@@ -150,10 +150,14 @@ struct ResultView: View {
 
     private var detailChips: some View {
         HStack(spacing: 8) {
-            chipButton("Body map →") {
-                if store.isSubscribed { showBodyMap = true } else { appState.isPaywallPresented = true }
+            // Chakras and a body map describe a person. They mean nothing for a
+            // plant, a room or a dish, so they only appear on a person reading.
+            if reading.mode.isPersonReading {
+                chipButton("Body map →") {
+                    if store.isSubscribed { showBodyMap = true } else { appState.isPaywallPresented = true }
+                }
+                chipButton("Chakras →") { showChakras = true }
             }
-            chipButton("Chakras →") { showChakras = true }
             chipButton("Colours →") { showDetails = true }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -71,6 +71,22 @@ final class CameraService: NSObject, ObservableObject {
         configure()
     }
 
+    /// Point the camera the way the chosen subject needs it.
+    ///
+    /// Reading a person uses the front camera; reading a plant, a pet or a room
+    /// obviously needs the rear one. Reconfiguring is not free, so this is a
+    /// no-op when the camera is already facing the right way.
+    func use(front useFront: Bool) {
+        let wanted: AVCaptureDevice.Position = useFront ? .front : .back
+        guard wanted != position else { return }
+        position = wanted
+        // Only rebuild a session that is already live. Before that, the new
+        // position is simply picked up by the first configure().
+        if status == .configured { configure() }
+    }
+
+    var isUsingFrontCamera: Bool { position == .front }
+
     func capturePhoto(completion: @escaping (UIImage?) -> Void) {
         captureCompletion = completion
         let settings = AVCapturePhotoSettings()
