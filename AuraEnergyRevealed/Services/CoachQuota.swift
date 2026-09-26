@@ -1,6 +1,6 @@
 //
 //  CoachQuota.swift
-//  Auralis
+//  Orenda
 //
 //  How many Aura Coach messages a person may send in the current period.
 //

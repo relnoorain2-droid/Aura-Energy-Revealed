@@ -1,6 +1,6 @@
 //
 //  CoachRelay.swift
-//  Auralis
+//  Orenda
 //
 //  Configuration for the Aura Coach relay.
 //

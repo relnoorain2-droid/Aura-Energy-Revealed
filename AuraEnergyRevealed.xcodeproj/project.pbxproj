@@ -254,7 +254,7 @@
 				DEVELOPMENT_TEAM = QAT93YWVSF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Auralis";
+				INFOPLIST_KEY_CFBundleDisplayName = "Orenda";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Your camera captures the photo used for your aura reading. Everything is analysed privately on your iPhone.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Choose a saved photo to reveal its aura. Photos never leave your device without your consent.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -286,7 +286,7 @@
 				DEVELOPMENT_TEAM = QAT93YWVSF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Auralis";
+				INFOPLIST_KEY_CFBundleDisplayName = "Orenda";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Your camera captures the photo used for your aura reading. Everything is analysed privately on your iPhone.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Choose a saved photo to reveal its aura. Photos never leave your device without your consent.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

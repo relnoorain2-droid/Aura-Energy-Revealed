@@ -1,6 +1,6 @@
 //
 //  CoachService.swift
-//  Auralis
+//  Orenda
 //
 //  The Aura Coach brain.
 //
@@ -284,7 +284,7 @@ struct RelayCoachClient: CoachProviding {
 
     private static func systemPrompt(context: CoachContext) -> String {
         var lines: [String] = [
-            "You are the Aura Coach inside Auralis, a reflective wellness app.",
+            "You are the Aura Coach inside Orenda, a reflective wellness app.",
             "Voice: warm, grounded, unhurried. Speak like a thoughtful friend, not a therapist or a guru.",
             "Keep replies to 2–4 short sentences. Usually end with one gentle, open question.",
             "You may reference the person's aura readings as symbolic prompts for reflection — never as measurements, diagnoses, or predictions.",

@@ -1,6 +1,6 @@
 //
 //  CoachView.swift
-//  Auralis
+//  Orenda
 //
 //  Screen 16 — the Aura Coach.
 //

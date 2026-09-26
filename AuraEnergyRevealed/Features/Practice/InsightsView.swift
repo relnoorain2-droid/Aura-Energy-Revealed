@@ -1,6 +1,6 @@
 //
 //  InsightsView.swift
-//  Auralis
+//  Orenda
 //
 //  Energy Insights — what your readings, rituals and journal add up to over time.
 //

@@ -1,6 +1,6 @@
 //
 //  DailyRitual.swift
-//  Auralis
+//  Orenda
 //
 //  The Daily Ritual — a short, guided four-part practice that changes every day
 //  and adapts to the colour of your most recent reading.

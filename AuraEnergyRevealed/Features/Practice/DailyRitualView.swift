@@ -1,6 +1,6 @@
 //
 //  DailyRitualView.swift
-//  Auralis
+//  Orenda
 //
 //  A four-part guided ritual: arrive, breathe, set an intention, reflect.
 //  The content changes daily and the breath pattern follows your latest reading.
