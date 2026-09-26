@@ -62,8 +62,8 @@ struct AuraChip: View {
         .padding(.horizontal, 13)
         .padding(.vertical, 7)
         .background {
-            Capsule().fill(.white.opacity(emphasized ? 0.10 : 0.05))
-            Capsule().strokeBorder(.white.opacity(0.10), lineWidth: 1)
+            Capsule().fill(emphasized ? AuraPalette.fillStrong : AuraPalette.fill)
+            Capsule().strokeBorder(AuraPalette.hairline, lineWidth: 1)
         }
     }
 }
@@ -112,9 +112,9 @@ struct GhostButton: View {
                 .padding(.vertical, 16)
                 .background {
                     RoundedRectangle(cornerRadius: AuraRadius.cta, style: .continuous)
-                        .fill(.white.opacity(0.05))
+                        .fill(AuraPalette.fill)
                     RoundedRectangle(cornerRadius: AuraRadius.cta, style: .continuous)
-                        .strokeBorder(.white.opacity(0.14), lineWidth: 1)
+                        .strokeBorder(AuraPalette.hairline, lineWidth: 1)
                 }
         }
         .pressScale()

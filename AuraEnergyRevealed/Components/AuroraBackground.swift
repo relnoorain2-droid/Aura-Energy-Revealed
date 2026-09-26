@@ -11,6 +11,13 @@ struct AuroraBackground: View {
     var intensity: Double = 0.5
     @State private var drift = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
+
+    /// These washes were tuned against a near-black background. At full strength
+    /// on paper they turn the page muddy, so light appearance gets a third of it.
+    private var effective: Double {
+        colorScheme == .dark ? intensity : intensity * 0.34
+    }
 
     var body: some View {
         GeometryReader { geo in
@@ -25,8 +32,8 @@ struct AuroraBackground: View {
                 LinearGradient(
                     colors: [
                         .clear,
-                        AuraPalette.roseDeep.opacity(intensity * 0.16),
-                        AuraPalette.amber.opacity(intensity * 0.20)
+                        AuraPalette.roseDeep.opacity(effective * 0.16),
+                        AuraPalette.amber.opacity(effective * 0.20)
                     ],
                     startPoint: .top,
                     endPoint: .bottom
@@ -66,7 +73,7 @@ struct AuroraBackground: View {
         Circle()
             .fill(
                 RadialGradient(
-                    colors: [color.opacity(intensity * 0.42), .clear],
+                    colors: [color.opacity(effective * 0.42), .clear],
                     center: .center,
                     startRadius: 0,
                     endRadius: size * 0.5

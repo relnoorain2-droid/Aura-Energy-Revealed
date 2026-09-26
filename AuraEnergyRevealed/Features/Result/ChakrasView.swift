@@ -77,7 +77,7 @@ struct ChakrasView: View {
 
                 // Balance meter
                 ZStack(alignment: .leading) {
-                    Capsule().fill(.white.opacity(0.1))
+                    Capsule().fill(AuraPalette.fillStrong)
                     Capsule().fill(chakra.color)
                         .frame(width: 50 * chakra.balance)
                 }

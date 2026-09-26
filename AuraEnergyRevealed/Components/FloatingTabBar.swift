@@ -33,7 +33,7 @@ struct FloatingTabBar: View {
             RoundedRectangle(cornerRadius: 30, style: .continuous)
                 .fill(AuraPalette.deepSpace.opacity(0.55))
             RoundedRectangle(cornerRadius: 30, style: .continuous)
-                .strokeBorder(.white.opacity(0.08), lineWidth: 1)
+                .strokeBorder(AuraPalette.hairline, lineWidth: 1)
         }
         .padding(.horizontal, AuraSpacing.m)
         .padding(.bottom, AuraSpacing.m)

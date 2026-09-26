@@ -11,6 +11,7 @@ import SwiftData
 
 struct SettingsView: View {
     @Environment(StoreService.self) private var store
+    @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
@@ -53,6 +54,32 @@ struct SettingsView: View {
                                     .font(.system(size: 12))
                                     .foregroundStyle(AuraPalette.inkGhost)
                             }
+                        }
+                    }
+
+                    // Appearance
+                    settingsGroup(title: "🎨 Appearance") {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Theme")
+                                .font(AuraFont.text(13.5, weight: .medium))
+                                .foregroundStyle(AuraPalette.ink)
+
+                            Picker("Theme", selection: Binding(
+                                get: { appState.appearance },
+                                set: { newValue in
+                                    appState.appearance = newValue
+                                    Haptics.selection()
+                                }
+                            )) {
+                                ForEach(AppAppearance.allCases) { option in
+                                    Text(option.title).tag(option)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+
+                            Text("Orenda is designed for daylight. Dark is there for late evenings.")
+                                .font(AuraFont.text(11, weight: .light))
+                                .foregroundStyle(AuraPalette.inkDim)
                         }
                     }
 

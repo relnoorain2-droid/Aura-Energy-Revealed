@@ -21,7 +21,7 @@ struct AuraEnergyRevealedApp: App {
                 .environment(appState)
                 .environment(store)
                 .environment(coachQuota)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(appState.appearance.colorScheme)
                 .tint(AuraPalette.auroraPurple)
                 .task {
                     FontRegistrar.registerBundledFonts()

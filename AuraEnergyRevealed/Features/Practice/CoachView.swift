@@ -122,7 +122,7 @@ struct CoachView: View {
             if message.isUser { Spacer(minLength: 50) }
             Text(message.text)
                 .font(AuraFont.text(13))
-                .foregroundStyle(.white)
+                .foregroundStyle(message.isUser ? Color.white : AuraPalette.ink)
                 .lineSpacing(3)
                 .textSelection(.enabled)
                 .padding(.horizontal, 14)
@@ -133,9 +133,9 @@ struct CoachView: View {
                             .fill(AuraPalette.primaryGradient)
                     } else {
                         UnevenRoundedRectangle(topLeadingRadius: 16, bottomLeadingRadius: 4, bottomTrailingRadius: 16, topTrailingRadius: 16)
-                            .fill(.white.opacity(0.06))
+                            .fill(AuraPalette.fill)
                         UnevenRoundedRectangle(topLeadingRadius: 16, bottomLeadingRadius: 4, bottomTrailingRadius: 16, topTrailingRadius: 16)
-                            .strokeBorder(.white.opacity(0.08), lineWidth: 1)
+                            .strokeBorder(AuraPalette.hairline, lineWidth: 1)
                     }
                 }
             if !message.isUser { Spacer(minLength: 50) }
@@ -154,8 +154,8 @@ struct CoachView: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
                 .background {
-                    RoundedRectangle(cornerRadius: 20).fill(.white.opacity(0.06))
-                    RoundedRectangle(cornerRadius: 20).strokeBorder(.white.opacity(0.1), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 20).fill(AuraPalette.fill)
+                    RoundedRectangle(cornerRadius: 20).strokeBorder(AuraPalette.hairline, lineWidth: 1)
                 }
                 .disabled(isThinking)
                 .onSubmit(send)
@@ -336,7 +336,7 @@ private struct TypingBubble: View {
             HStack(spacing: 4) {
                 ForEach(0..<3, id: \.self) { index in
                     Circle()
-                        .fill(.white.opacity(0.55))
+                        .fill(AuraPalette.inkGhost)
                         .frame(width: 6, height: 6)
                         .scaleEffect(scale(for: index))
                 }
@@ -345,7 +345,7 @@ private struct TypingBubble: View {
             .padding(.vertical, 14)
             .background {
                 UnevenRoundedRectangle(topLeadingRadius: 16, bottomLeadingRadius: 4, bottomTrailingRadius: 16, topTrailingRadius: 16)
-                    .fill(.white.opacity(0.06))
+                    .fill(AuraPalette.fill)
             }
             Spacer(minLength: 50)
         }

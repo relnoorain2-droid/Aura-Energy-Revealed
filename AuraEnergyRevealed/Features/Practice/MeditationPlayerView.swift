@@ -137,7 +137,7 @@ struct MeditationPlayerView: View {
                 VStack(spacing: 8) {
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
-                            Capsule().fill(.white.opacity(0.12))
+                            Capsule().fill(AuraPalette.fillStrong)
                             Capsule()
                                 .fill(meditation.hue.orbStyle.colors.first ?? AuraPalette.emerald)
                                 .frame(width: geo.size.width * min(1, elapsed / total))

@@ -172,9 +172,9 @@ struct HomeView: View {
             .padding(.vertical, 16)
             .background {
                 RoundedRectangle(cornerRadius: AuraRadius.card, style: .continuous)
-                    .fill(.white.opacity(0.05))
+                    .fill(AuraPalette.fill)
                 RoundedRectangle(cornerRadius: AuraRadius.card, style: .continuous)
-                    .strokeBorder(.white.opacity(0.09), lineWidth: 1)
+                    .strokeBorder(AuraPalette.hairline, lineWidth: 1)
             }
         }
         .buttonStyle(.plain)
@@ -246,9 +246,9 @@ struct HomeView: View {
         .frame(width: 108, height: 70)
         .background {
             RoundedRectangle(cornerRadius: AuraRadius.button, style: .continuous)
-                .fill(.white.opacity(0.05))
+                .fill(AuraPalette.fill)
             RoundedRectangle(cornerRadius: AuraRadius.button, style: .continuous)
-                .strokeBorder(.white.opacity(0.12), style: StrokeStyle(lineWidth: 1, dash: [4]))
+                .strokeBorder(AuraPalette.hairline, style: StrokeStyle(lineWidth: 1, dash: [4]))
         }
     }
 }

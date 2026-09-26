@@ -58,7 +58,7 @@ struct OnboardingView: View {
                     HStack(spacing: 6) {
                         ForEach(0..<slides.count, id: \.self) { i in
                             Capsule()
-                                .fill(i == page ? Color.white : Color.white.opacity(0.25))
+                                .fill(i == page ? AuraPalette.ink : AuraPalette.inkFaint)
                                 .frame(width: i == page ? 22 : 8, height: 5)
                                 .animation(AuraMotion.standard, value: page)
                         }
@@ -162,8 +162,8 @@ private struct FlowChips: View {
                             if isOn {
                                 Capsule().fill(AuraPalette.lavender)
                             } else {
-                                Capsule().fill(.white.opacity(0.05))
-                                Capsule().strokeBorder(.white.opacity(0.12), lineWidth: 1)
+                                Capsule().fill(AuraPalette.fill)
+                                Capsule().strokeBorder(AuraPalette.hairline, lineWidth: 1)
                             }
                         }
                 }

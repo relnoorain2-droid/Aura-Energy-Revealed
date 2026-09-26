@@ -149,7 +149,7 @@ struct PaywallView: View {
             HStack(spacing: 11) {
                 // Radio
                 Circle()
-                    .strokeBorder(isSelected ? AuraPalette.gold : Color.white.opacity(0.25), lineWidth: 2)
+                    .strokeBorder(isSelected ? AuraPalette.gold : AuraPalette.hairline, lineWidth: 2)
                     .frame(width: 20, height: 20)
                     .overlay {
                         if isSelected {
@@ -184,10 +184,10 @@ struct PaywallView: View {
                         )
                     )
                 } else {
-                    shape.fill(.white.opacity(0.05))
+                    shape.fill(AuraPalette.fill)
                 }
                 shape.strokeBorder(
-                    plan == .yearly ? AuraPalette.gold.opacity(0.65) : .white.opacity(isSelected ? 0.35 : 0.1),
+                    plan == .yearly ? AuraPalette.gold.opacity(0.65) : AuraPalette.hairline,
                     lineWidth: 1
                 )
             }

@@ -29,7 +29,7 @@ struct EnergyMeter: View {
             }
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(.white.opacity(0.1))
+                    Capsule().fill(AuraPalette.fillStrong)
                     Capsule()
                         .fill(
                             LinearGradient(

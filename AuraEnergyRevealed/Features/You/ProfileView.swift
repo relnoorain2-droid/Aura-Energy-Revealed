@@ -226,13 +226,13 @@ struct MilestonesView: View {
                     .fill(
                         hasReading
                             ? AnyShapeStyle(LinearGradient(colors: gradients[offset], startPoint: .topLeading, endPoint: .bottomTrailing))
-                            : AnyShapeStyle(Color.white.opacity(0.08))
+                            : AnyShapeStyle(AuraPalette.fill)
                     )
                     .frame(height: 34)
                     .overlay {
                         if !hasReading {
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .strokeBorder(.white.opacity(0.2), style: StrokeStyle(lineWidth: 1, dash: [3]))
+                                .strokeBorder(AuraPalette.hairline, style: StrokeStyle(lineWidth: 1, dash: [3]))
                         }
                     }
             }

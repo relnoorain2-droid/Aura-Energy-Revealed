@@ -111,11 +111,11 @@ struct PermissionsView: View {
 
                 // Toggle-style state preview
                 Capsule()
-                    .fill(granted ? AuraPalette.emerald : Color.white.opacity(0.15))
+                    .fill(granted ? AuraPalette.emerald : AuraPalette.fillStrong)
                     .frame(width: 40, height: 24)
                     .overlay(alignment: granted ? .trailing : .leading) {
                         Circle()
-                            .fill(.white)
+                            .fill(AuraPalette.surface)
                             .frame(width: 20, height: 20)
                             .padding(2)
                     }
@@ -124,9 +124,9 @@ struct PermissionsView: View {
             .padding(18)
             .background {
                 RoundedRectangle(cornerRadius: AuraRadius.card, style: .continuous)
-                    .fill(.white.opacity(0.05))
+                    .fill(AuraPalette.fill)
                 RoundedRectangle(cornerRadius: AuraRadius.card, style: .continuous)
-                    .strokeBorder(.white.opacity(0.09), lineWidth: 1)
+                    .strokeBorder(AuraPalette.hairline, lineWidth: 1)
             }
         }
         .buttonStyle(.plain)

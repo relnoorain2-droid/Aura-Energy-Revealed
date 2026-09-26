@@ -98,7 +98,7 @@ struct PracticeView: View {
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(AuraPalette.ink)
                         .frame(width: 40, height: 40)
-                        .background { Circle().fill(.white.opacity(0.1)) }
+                        .background { Circle().fill(AuraPalette.fillStrong) }
                 }
             }
         }
@@ -112,7 +112,7 @@ struct PracticeView: View {
             HStack(spacing: 20) {
                 ZStack {
                     Circle()
-                        .stroke(.white.opacity(0.1), lineWidth: 5)
+                        .stroke(AuraPalette.hairline, lineWidth: 5)
                     Circle()
                         .trim(from: 0, to: min(1, weeklyCalmMinutes / weeklyGoal))
                         .stroke(
@@ -211,7 +211,7 @@ struct MeditationLibraryView: View {
         GlassCard(padding: 16) {
             HStack(spacing: 14) {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(.white.opacity(0.06))
+                    .fill(AuraPalette.fill)
                     .frame(width: 44, height: 44)
                     .overlay {
                         Image(systemName: "lock.fill")

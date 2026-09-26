@@ -38,6 +38,39 @@ enum AppTab: String, CaseIterable {
     }
 }
 
+/// Light is the default. The app was dark-first; it is now paper-first, with
+/// dark kept as a deliberate choice rather than the only option.
+enum AppAppearance: String, CaseIterable, Identifiable {
+    case light, dark, system
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .light: "Light"
+        case .dark: "Dark"
+        case .system: "System"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .light: "sun.max"
+        case .dark: "moon"
+        case .system: "circle.lefthalf.filled"
+        }
+    }
+
+    /// `nil` hands the decision back to iOS.
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .light: .light
+        case .dark: .dark
+        case .system: nil
+        }
+    }
+}
+
 @Observable
 final class AppState {
 
@@ -53,6 +86,23 @@ final class AppState {
 
     @ObservationIgnored
     @AppStorage("freeScansUsed") var freeScansUsed: Int = 0
+
+    @ObservationIgnored
+    @AppStorage("appAppearance") private var appearanceRaw: String = AppAppearance.light.rawValue
+
+    /// Bumped on change so `@Observable` views re-render when appearance flips.
+    private var appearanceRevision = 0
+
+    var appearance: AppAppearance {
+        get {
+            _ = appearanceRevision
+            return AppAppearance(rawValue: appearanceRaw) ?? .light
+        }
+        set {
+            appearanceRaw = newValue.rawValue
+            appearanceRevision &+= 1
+        }
+    }
 
     // MARK: Session state
     var phase: AppPhase = .splash

@@ -161,7 +161,7 @@ struct InsightsView: View {
                     .font(AuraFont.mono(9))
                     .foregroundStyle(AuraPalette.inkGhost)
                 ForEach(Array(observations.enumerated()), id: \.offset) { index, note in
-                    if index > 0 { Divider().overlay(.white.opacity(0.07)) }
+                    if index > 0 { Divider().overlay(AuraPalette.hairline) }
                     Text(note)
                         .font(AuraFont.text(13))
                         .foregroundStyle(AuraPalette.ink)
@@ -213,7 +213,7 @@ struct InsightsView: View {
 
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
-                                Capsule().fill(.white.opacity(0.07))
+                                Capsule().fill(AuraPalette.fill)
                                 Capsule()
                                     .fill(hue.titleColor.opacity(0.85))
                                     .frame(width: max(6, geo.size.width * (Double(count) / Double(maxCount))))
@@ -266,7 +266,7 @@ struct InsightsView: View {
             }
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(.white.opacity(0.07))
+                    Capsule().fill(AuraPalette.fill)
                     Capsule()
                         .fill(LinearGradient(colors: [color.opacity(0.5), color], startPoint: .leading, endPoint: .trailing))
                         .frame(width: max(6, geo.size.width * min(1, max(0, value))))
@@ -301,7 +301,7 @@ struct InsightsView: View {
                             .foregroundStyle(AuraPalette.ink)
                             .padding(.horizontal, 11)
                             .padding(.vertical, 6)
-                            .background { Capsule().fill(.white.opacity(0.07)) }
+                            .background { Capsule().fill(AuraPalette.fill) }
                     }
                 }
             }

@@ -116,7 +116,7 @@ struct DailyRitualView: View {
         HStack(spacing: 5) {
             ForEach(Stage.allCases, id: \.rawValue) { item in
                 Capsule()
-                    .fill(item.rawValue <= stage.rawValue ? tint : Color.white.opacity(0.12))
+                    .fill(item.rawValue <= stage.rawValue ? tint : AuraPalette.fillStrong)
                     .frame(height: 3)
             }
         }
@@ -146,7 +146,7 @@ struct DailyRitualView: View {
                         .foregroundStyle(AuraPalette.inkDim)
                         .fixedSize(horizontal: false, vertical: true)
                     if let aura = ritual.aura {
-                        Divider().overlay(.white.opacity(0.08))
+                        Divider().overlay(AuraPalette.hairline)
                         Text("Chosen for your \(aura.displayName.lowercased()) reading.")
                             .font(AuraFont.text(11))
                             .foregroundStyle(AuraPalette.inkGhost)
@@ -199,7 +199,7 @@ struct DailyRitualView: View {
                     .foregroundStyle(AuraPalette.ink)
                     .padding(.horizontal, 26)
                     .padding(.vertical, 11)
-                    .background { Capsule().fill(.white.opacity(0.09)) }
+                    .background { Capsule().fill(AuraPalette.fillStrong) }
             }
             .buttonStyle(.plain)
         }
@@ -251,7 +251,7 @@ struct DailyRitualView: View {
                             summaryRow(title: "YOUR INTENTION", body: intentionText)
                         }
                         if !reflectionText.isEmpty {
-                            if !intentionText.isEmpty { Divider().overlay(.white.opacity(0.08)) }
+                            if !intentionText.isEmpty { Divider().overlay(AuraPalette.hairline) }
                             summaryRow(title: "YOUR REFLECTION", body: reflectionText)
                         }
                     }
@@ -281,8 +281,8 @@ struct DailyRitualView: View {
 
     private func promptEditor(text: Binding<String>, placeholder: String) -> some View {
         ZStack(alignment: .topLeading) {
-            RoundedRectangle(cornerRadius: 16).fill(.white.opacity(0.05))
-            RoundedRectangle(cornerRadius: 16).strokeBorder(.white.opacity(0.1), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 16).fill(AuraPalette.fill)
+            RoundedRectangle(cornerRadius: 16).strokeBorder(AuraPalette.hairline, lineWidth: 1)
             if text.wrappedValue.isEmpty {
                 Text(placeholder)
                     .font(AuraFont.text(13))
@@ -314,7 +314,7 @@ struct DailyRitualView: View {
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(AuraPalette.ink)
                         .frame(width: 46, height: 46)
-                        .background { Circle().fill(.white.opacity(0.08)) }
+                        .background { Circle().fill(AuraPalette.fillStrong) }
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Previous step")
